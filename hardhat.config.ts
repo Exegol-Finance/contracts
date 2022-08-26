@@ -5,7 +5,8 @@ import "@nomiclabs/hardhat-etherscan";
 
 require("dotenv").config();
 
-const { KOVAN_URL, PRIVATE_KEY, MAINNET_URL, GOERLI_URL } = process.env;
+const { KOVAN_URL, PRIVATE_KEY, MAINNET_URL, GOERLI_URL, ETHERSCAN } =
+  process.env;
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
@@ -28,7 +29,7 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: "FKB5XE7AKK3RAAE1KE1945FYY15MTMDSU2",
+    apiKey: ETHERSCAN,
   },
 };
 
