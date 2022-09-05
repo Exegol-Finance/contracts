@@ -40,8 +40,8 @@ contract Gen3 is ERC20, ERC20Burnable, Ownable {
 
     function withdrawLiquidity(uint256 value) public onlyOwner {
         require(value <= liquidity, "Not enough liquidity to withdraw");
-        USDC.safeTransfer(this.owner(), value);
         liquidity -= value;
+        USDC.safeTransfer(this.owner(), value);
     }
 
     function addLiquidity(uint256 value) public onlyOwner {
@@ -68,7 +68,7 @@ contract Gen3 is ERC20, ERC20Burnable, Ownable {
         liquidity += value;
 
         // first time depositing
-        if (lastWithdraw[msg.sender] == 0) {
+        if (lastWithdraw[msg.sender] <= 0) {
             lastWithdraw[msg.sender] = block.number; // begin initial lock
         }
 
