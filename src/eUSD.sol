@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract Gen3 is ERC20, ERC20Burnable, Ownable {
+contract eUSD is ERC20, ERC20Burnable, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -17,11 +17,11 @@ contract Gen3 is ERC20, ERC20Burnable, Ownable {
     uint256 private liquidity;
     uint256 public maxFee;
 
-    uint256 public exchangeRate; // GEN3 per USDC
+    uint256 public exchangeRate; // eUSD per USDC
     mapping(address => uint256) public lastWithdraw; // address to block number
     uint256 public blockTimeout;
 
-    constructor() ERC20("Gen3", "GEN3") {
+    constructor() ERC20("eUSD", "eUSD") {
         USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); // USDC mainnet address
         feeRecipient = msg.sender;
         liquidity = 0;
@@ -75,7 +75,7 @@ contract Gen3 is ERC20, ERC20Burnable, Ownable {
         _mint(msg.sender, value.mul(10**this.decimals()).div(exchangeRate));
     }
 
-    // value = number of GEN3 to burn
+    // value = number of eUSD to burn
     function withdraw(uint256 value) public {
         require(
             liquidity >= value.mul(exchangeRate).div(10**this.decimals()),

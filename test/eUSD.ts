@@ -4,12 +4,12 @@ import { assert, expect } from "chai";
 import { Contract } from "ethers";
 import { ethers } from "hardhat";
 
-describe("Gen3", function () {
+describe("eUSD", function () {
   const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   const ERC20_ABI = require("./erc20.abi.json");
 
   async function deployTokenFixture() {
-    const Gen3 = await ethers.getContractFactory("Gen3");
+    const EUSD = await ethers.getContractFactory("eUSD");
     const [owner] = await ethers.getSigners();
 
     const USDCWhale = await ethers.getImpersonatedSigner(
@@ -18,114 +18,114 @@ describe("Gen3", function () {
 
     const USDC = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, ethers.provider);
 
-    const gen3 = await Gen3.deploy();
-    await gen3.deployed();
+    const eUSD = await EUSD.deploy();
+    await eUSD.deployed();
 
-    return { Gen3, gen3, owner, USDCWhale, USDC };
+    return { EUSD, eUSD, owner, USDCWhale, USDC };
   }
 
   async function mint(
-    gen3: any,
+    eUSD: any,
     owner: SignerWithAddress,
     USDC: Contract,
     USDCWhale: SignerWithAddress
   ) {
     const AMOUNT_TO_MINT = 100 * Math.pow(10, await USDC.decimals()); // 100 USDC
-    const AMOUNT_TO_RECIEVE = 100 * Math.pow(10, await gen3.decimals()); // 100 GEN3
+    const AMOUNT_TO_RECIEVE = 100 * Math.pow(10, await eUSD.decimals()); // 100 eUSD
 
-    await USDC.connect(USDCWhale).approve(gen3.address, AMOUNT_TO_MINT);
-    await gen3.connect(USDCWhale).mint(AMOUNT_TO_MINT); // mint using 100 USDC
+    await USDC.connect(USDCWhale).approve(eUSD.address, AMOUNT_TO_MINT);
+    await eUSD.connect(USDCWhale).mint(AMOUNT_TO_MINT); // mint using 100 USDC
 
-    assert.equal(AMOUNT_TO_MINT, (await gen3.availableLiquidity()).toNumber());
+    assert.equal(AMOUNT_TO_MINT, (await eUSD.availableLiquidity()).toNumber());
     assert.equal(
       AMOUNT_TO_RECIEVE,
-      (await gen3.balanceOf(USDCWhale.address)).toNumber()
+      (await eUSD.balanceOf(USDCWhale.address)).toNumber()
     );
   }
 
   // sanity test
   describe("Deployment", function () {
     it("should have correct owner", async function () {
-      const { owner, gen3 } = await loadFixture(deployTokenFixture);
+      const { owner, eUSD } = await loadFixture(deployTokenFixture);
 
-      assert.equal(owner.address, await gen3.owner());
+      assert.equal(owner.address, await eUSD.owner());
     });
   });
 
   describe("Minting", function () {
     it("should be able to mint", async function () {
-      const { owner, gen3, USDC, USDCWhale } = await loadFixture(
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
 
       const AMOUNT_TO_MINT = 100 * Math.pow(10, await USDC.decimals()); // 100 USDC
-      const AMOUNT_TO_RECIEVE = 100 * Math.pow(10, await gen3.decimals()); // 100 GEN3
+      const AMOUNT_TO_RECIEVE = 100 * Math.pow(10, await eUSD.decimals()); // 100 eUSD
 
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
-      await USDC.connect(owner).approve(gen3.address, AMOUNT_TO_MINT);
-      await gen3.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
+      await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
 
       assert.equal(
         AMOUNT_TO_RECIEVE,
-        (await gen3.availableLiquidity()).toNumber()
+        (await eUSD.availableLiquidity()).toNumber()
       );
       assert.equal(
         AMOUNT_TO_RECIEVE,
-        (await gen3.balanceOf(owner.address)).toNumber()
+        (await eUSD.balanceOf(owner.address)).toNumber()
       );
     });
 
     it("should mint lower amount when exchange rate is high", async function () {
-      const { owner, gen3, USDC, USDCWhale } = await loadFixture(
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
 
       const AMOUNT_TO_MINT = 100 * Math.pow(10, await USDC.decimals());
-      const NEW_EXCHANGE_RATE = 1.1 * Math.pow(10, await gen3.decimals());
+      const NEW_EXCHANGE_RATE = 1.1 * Math.pow(10, await eUSD.decimals());
 
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
-      await USDC.connect(owner).approve(gen3.address, AMOUNT_TO_MINT);
+      await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
 
-      await gen3.updateExchangeRate(NEW_EXCHANGE_RATE.toString());
-      await gen3.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await eUSD.updateExchangeRate(NEW_EXCHANGE_RATE.toString());
+      await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
 
       assert.equal(
         AMOUNT_TO_MINT,
-        (await gen3.availableLiquidity()).toNumber()
+        (await eUSD.availableLiquidity()).toNumber()
       );
       assert.equal(
         Math.trunc(
-          (AMOUNT_TO_MINT * Math.pow(10, await gen3.decimals())) /
+          (AMOUNT_TO_MINT * Math.pow(10, await eUSD.decimals())) /
             NEW_EXCHANGE_RATE
         ),
-        (await gen3.balanceOf(owner.address)).toNumber()
+        (await eUSD.balanceOf(owner.address)).toNumber()
       );
     });
 
     it("should mint higher amount when exchange rate is low", async function () {
-      const { owner, gen3, USDC, USDCWhale } = await loadFixture(
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
 
       const AMOUNT_TO_MINT = 100 * Math.pow(10, await USDC.decimals());
-      const NEW_EXCHANGE_RATE = 0.9 * Math.pow(10, await gen3.decimals());
+      const NEW_EXCHANGE_RATE = 0.9 * Math.pow(10, await eUSD.decimals());
 
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
-      await USDC.connect(owner).approve(gen3.address, AMOUNT_TO_MINT);
+      await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
 
-      await gen3.updateExchangeRate(NEW_EXCHANGE_RATE.toString());
-      await gen3.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await eUSD.updateExchangeRate(NEW_EXCHANGE_RATE.toString());
+      await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
 
       assert.equal(
         AMOUNT_TO_MINT,
-        (await gen3.availableLiquidity()).toNumber()
+        (await eUSD.availableLiquidity()).toNumber()
       );
       assert.equal(
         Math.trunc(
-          (AMOUNT_TO_MINT * Math.pow(10, await gen3.decimals())) /
+          (AMOUNT_TO_MINT * Math.pow(10, await eUSD.decimals())) /
             NEW_EXCHANGE_RATE
         ),
-        (await gen3.balanceOf(owner.address)).toNumber()
+        (await eUSD.balanceOf(owner.address)).toNumber()
       );
     });
   });
@@ -133,17 +133,17 @@ describe("Gen3", function () {
   describe("Burning", function () {
     // WARNING: flaky test
     it("should return USDC", async function () {
-      const { owner, gen3, USDC, USDCWhale } = await loadFixture(
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
       const initBalance = await USDC.balanceOf(USDCWhale.address);
-      await mint(gen3, owner, USDC, USDCWhale);
+      await mint(eUSD, owner, USDC, USDCWhale);
 
-      // await gen3.updateExchangeRate(0.9 * Math.pow(10, 6));
+      // await eUSD.updateExchangeRate(0.9 * Math.pow(10, 6));
 
-      await gen3
+      await eUSD
         .connect(USDCWhale)
-        .withdraw((await gen3.balanceOf(USDCWhale.address)).toNumber());
+        .withdraw((await eUSD.balanceOf(USDCWhale.address)).toNumber());
 
       // user get some extra USDC due to a precision issue
       assert.isBelow(
@@ -158,81 +158,81 @@ describe("Gen3", function () {
       );
 
       // precision issue does not affect liquidity, overflow or underflow
-      assert.equal((await gen3.availableLiquidity()).toNumber(), 0);
+      assert.equal((await eUSD.availableLiquidity()).toNumber(), 0);
     });
   });
 
   describe("Liquidity and Permissions", function () {
     it("should allow owner to withdraw and add liquidity", async function () {
-      const { owner, gen3, USDC, USDCWhale } = await loadFixture(
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
-      await mint(gen3, owner, USDC, USDCWhale);
+      await mint(eUSD, owner, USDC, USDCWhale);
 
-      const initialLiquidity = await gen3.availableLiquidity();
+      const initialLiquidity = await eUSD.availableLiquidity();
       const toRemove = 50 * (await USDC.decimals());
 
-      await gen3.withdrawLiquidity(toRemove);
+      await eUSD.withdrawLiquidity(toRemove);
       assert.isTrue(
-        (await gen3.availableLiquidity()).eq(initialLiquidity.sub(toRemove))
+        (await eUSD.availableLiquidity()).eq(initialLiquidity.sub(toRemove))
       );
 
-      await USDC.connect(owner).approve(gen3.address, toRemove);
+      await USDC.connect(owner).approve(eUSD.address, toRemove);
 
-      await gen3.addLiquidity(toRemove);
-      assert.isTrue((await gen3.availableLiquidity()).eq(initialLiquidity));
+      await eUSD.addLiquidity(toRemove);
+      assert.isTrue((await eUSD.availableLiquidity()).eq(initialLiquidity));
     });
 
     it("should not allow anyone else to withdraw liquidity", async function () {
-      const { owner, gen3, USDC, USDCWhale } = await loadFixture(
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
-      await mint(gen3, owner, USDC, USDCWhale);
+      await mint(eUSD, owner, USDC, USDCWhale);
 
       await expect(
-        gen3.connect(USDCWhale).withdrawLiquidity(50 * (await USDC.decimals()))
+        eUSD.connect(USDCWhale).withdrawLiquidity(50 * (await USDC.decimals()))
       ).to.be.rejectedWith(Error);
     });
 
     it("should only allow owner to update fee recipient", async function () {
-      const { owner, gen3, USDCWhale } = await loadFixture(deployTokenFixture);
+      const { owner, eUSD, USDCWhale } = await loadFixture(deployTokenFixture);
 
       await expect(
-        gen3.connect(USDCWhale).updateFeeRecipient(USDCWhale.address)
+        eUSD.connect(USDCWhale).updateFeeRecipient(USDCWhale.address)
       ).to.be.rejectedWith(Error);
 
       await expect(
-        gen3.connect(owner).updateFeeRecipient(USDCWhale.address)
+        eUSD.connect(owner).updateFeeRecipient(USDCWhale.address)
       ).to.not.be.rejectedWith(Error);
     });
 
     it("should only allow owner to transfer ownership", async function () {
-      const { owner, gen3, USDCWhale } = await loadFixture(deployTokenFixture);
+      const { owner, eUSD, USDCWhale } = await loadFixture(deployTokenFixture);
 
       await expect(
-        gen3.connect(USDCWhale).transferOwnership(USDCWhale.address)
+        eUSD.connect(USDCWhale).transferOwnership(USDCWhale.address)
       ).to.be.rejectedWith(Error);
 
       await expect(
-        gen3.connect(owner).transferOwnership(USDCWhale.address)
+        eUSD.connect(owner).transferOwnership(USDCWhale.address)
       ).to.not.be.rejectedWith(Error);
 
-      await expect(gen3.owner()).to.eventually.equal(USDCWhale.address);
-      await expect(gen3.feeRecipient()).to.eventually.equal(USDCWhale.address);
+      await expect(eUSD.owner()).to.eventually.equal(USDCWhale.address);
+      await expect(eUSD.feeRecipient()).to.eventually.equal(USDCWhale.address);
     });
 
     it("should only allow owner to update exchange rate", async function () {
-      const { owner, gen3, USDCWhale } = await loadFixture(deployTokenFixture);
+      const { owner, eUSD, USDCWhale } = await loadFixture(deployTokenFixture);
 
       await expect(
-        gen3.connect(USDCWhale).updateExchangeRate(10 * Math.pow(10, 6))
+        eUSD.connect(USDCWhale).updateExchangeRate(10 * Math.pow(10, 6))
       ).to.be.rejectedWith(Error);
 
       await expect(
-        gen3.connect(owner).updateExchangeRate(10 * Math.pow(10, 6))
+        eUSD.connect(owner).updateExchangeRate(10 * Math.pow(10, 6))
       ).to.not.be.rejectedWith(Error);
 
-      await expect(gen3.exchangeRate()).to.eventually.equal(
+      await expect(eUSD.exchangeRate()).to.eventually.equal(
         10 * Math.pow(10, 6)
       );
     });

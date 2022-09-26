@@ -1,11 +1,11 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const Gen3 = await ethers.getContractFactory("Gen3");
-  const gen3 = await Gen3.deploy();
-  await gen3.deployed();
+  const EUSD = await ethers.getContractFactory("eUSD");
+  const eUSD = await EUSD.deploy();
+  await eUSD.deployed();
 
-  console.log("Gen3 deployed to:", gen3.address);
+  console.log("eUSD deployed to:", eUSD.address);
 }
 
 main().catch((error) => {
