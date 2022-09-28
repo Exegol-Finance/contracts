@@ -1,17 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract eUSD is ERC20, ERC20Burnable, Ownable {
-    using SafeERC20 for IERC20;
-    using SafeMath for uint256;
+contract eUSD is
+    Initializable,
+    ERC20Upgradeable,
+    ERC20BurnableUpgradeable,
+    OwnableUpgradeable
+{
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeMathUpgradeable for uint256;
 
-    IERC20 public USDC;
+    IERC20Upgradeable public USDC;
 
     address public feeRecipient;
     uint256 private liquidity;
@@ -21,13 +28,18 @@ contract eUSD is ERC20, ERC20Burnable, Ownable {
     mapping(address => uint256) public lastWithdraw; // address to block number
     uint256 public blockTimeout;
 
-    constructor() ERC20("eUSD", "eUSD") {
-        USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); // USDC mainnet address
+    function initialize(address _USDCAddress, uint256 _blockTimeout)
+        public
+        initializer
+    {
+        __ERC20_init("eUSD", "eUSD");
+        __Ownable_init();
+        USDC = IERC20Upgradeable(_USDCAddress); // USDC mainnet address
         feeRecipient = msg.sender;
         liquidity = 0;
         exchangeRate = 10**6;
         maxFee = 0.1 * (10**6);
-        blockTimeout = 134400; //blocks (around 21 days for mainnet)
+        blockTimeout = _blockTimeout; //blocks (around 21 days for mainnet)
     }
 
     function decimals() public pure override returns (uint8) {

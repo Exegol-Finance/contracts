@@ -3,12 +3,15 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@openzeppelin/hardhat-defender": "^1.8.0",
+    "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "ethers": "^5.7.0",
     "hardhat": "^2.10.2"
   },
   "dependencies": {
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@openzeppelin/contracts": "^4.7.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1",
     "dotenv": "^16.0.1"
   }
 }

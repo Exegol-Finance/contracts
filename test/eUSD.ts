@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { assert, expect } from "chai";
 import { Contract } from "ethers";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 describe("eUSD", function () {
   const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -18,7 +18,14 @@ describe("eUSD", function () {
 
     const USDC = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, ethers.provider);
 
-    const eUSD = await EUSD.deploy();
+    // const eUSD = await EUSD.deploy(
+    //   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    //   134400
+    // );
+    const eUSD = await upgrades.deployProxy(EUSD, [
+      "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      134400,
+    ]);
     await eUSD.deployed();
 
     return { EUSD, eUSD, owner, USDCWhale, USDC };
