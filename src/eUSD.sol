@@ -99,7 +99,7 @@ contract eUSD is
         liquidity -= USDAmount;
 
         // subtract linear fee
-        uint256 percentFee = maxFee.mul(getWithdrawFee()).div(
+        uint256 percentFee = maxFee.mul(getWithdrawFee(msg.sender)).div(
             10**this.decimals()
         );
         lastWithdraw[msg.sender] = block.number;
@@ -111,13 +111,13 @@ contract eUSD is
         USDC.safeTransfer(msg.sender, USDAmount);
     }
 
-    function getWithdrawFee() public view returns (uint256) {
-        if (block.number >= lastWithdraw[msg.sender] + blockTimeout) {
+    function getWithdrawFee(address _address) public view returns (uint256) {
+        if (block.number >= lastWithdraw[_address] + blockTimeout) {
             return 0;
         }
 
         uint256 fee = 1**this.decimals();
-        uint256 penaltyCompletion = block.number - lastWithdraw[msg.sender];
+        uint256 penaltyCompletion = block.number - lastWithdraw[_address];
         penaltyCompletion = penaltyCompletion.mul(10**this.decimals()).div(
             blockTimeout
         );
