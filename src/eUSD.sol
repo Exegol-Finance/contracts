@@ -28,6 +28,9 @@ contract eUSD is
     mapping(address => uint256) public lastWithdraw; // address to block number
     uint256 public blockTimeout;
 
+    bool public allowDeposit;
+    bool public allowWithdraw;
+
     function initialize(address _USDCAddress, uint256 _blockTimeout)
         public
         initializer
@@ -39,7 +42,25 @@ contract eUSD is
         liquidity = 0;
         exchangeRate = 10**6;
         maxFee = 0.1 * (10**6);
+        allowDeposit = true;
+        allowWithdraw = true;
         blockTimeout = _blockTimeout; //blocks (around 21 days for mainnet)
+    }
+
+    function setDeposit(bool _allow) public onlyOwner {
+        allowDeposit = _allow;
+    }
+
+    function setWithdraw(bool _allow) public onlyOwner {
+        allowWithdraw = _allow;
+    }
+
+    function updateExchangeRate(uint256 _newExchangeRate) public onlyOwner {
+        exchangeRate = _newExchangeRate;
+    }
+
+    function setMaxFee(uint256 _maxFee) public onlyOwner {
+        maxFee = _maxFee;
     }
 
     function decimals() public pure override returns (uint8) {
@@ -70,12 +91,9 @@ contract eUSD is
         feeRecipient = newOwner;
     }
 
-    function updateExchangeRate(uint256 newExchangeRate) public onlyOwner {
-        exchangeRate = newExchangeRate;
-    }
-
     // value = number of USDC to mint with
     function mint(uint256 value) public {
+        require(allowDeposit, "Deposits are disabled");
         USDC.safeTransferFrom(msg.sender, address(this), value);
         liquidity += value;
 
@@ -89,6 +107,7 @@ contract eUSD is
 
     // value = number of eUSD to burn
     function withdraw(uint256 value) public {
+        require(allowWithdraw, "Withdraws are disabled");
         require(
             liquidity >= value.mul(exchangeRate).div(10**this.decimals()),
             "Not enough liquidity"
@@ -111,6 +130,7 @@ contract eUSD is
         USDC.safeTransfer(msg.sender, USDAmount);
     }
 
+    // % of penalty served
     function getWithdrawFee(address _address) public view returns (uint256) {
         if (block.number >= lastWithdraw[_address] + blockTimeout) {
             return 0;
