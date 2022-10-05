@@ -6,8 +6,14 @@ import "@openzeppelin/hardhat-upgrades";
 
 require("dotenv").config();
 
-const { KOVAN_URL, PRIVATE_KEY, MAINNET_URL, GOERLI_URL, ETHERSCAN } =
-  process.env;
+const {
+  KOVAN_URL,
+  PRIVATE_KEY,
+  MAINNET_URL,
+  GOERLI_URL,
+  ARB_RIN_KEY,
+  ETHERSCAN,
+} = process.env;
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
@@ -26,6 +32,10 @@ const config: HardhatUserConfig = {
     },
     goerli: {
       url: GOERLI_URL,
+      accounts: [`0x${PRIVATE_KEY}`],
+    },
+    arb_test: {
+      url: ARB_RIN_KEY,
       accounts: [`0x${PRIVATE_KEY}`],
     },
   },

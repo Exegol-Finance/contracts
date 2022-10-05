@@ -55,12 +55,21 @@ contract eUSD is
         allowWithdraw = _allow;
     }
 
-    function updateExchangeRate(uint256 _newExchangeRate) public onlyOwner {
+    function setExchangeRate(uint256 _newExchangeRate) public onlyOwner {
         exchangeRate = _newExchangeRate;
     }
 
     function setMaxFee(uint256 _maxFee) public onlyOwner {
         maxFee = _maxFee;
+    }
+
+    // WARNING: applies to accounts currently serving a penalty
+    function setBlockTimeout(uint256 _blockTimeout) public onlyOwner {
+        blockTimeout = _blockTimeout;
+    }
+
+    function setUSDC(address _address) public onlyOwner {
+        USDC = IERC20Upgradeable(_address);
     }
 
     function decimals() public pure override returns (uint8) {
@@ -145,5 +154,17 @@ contract eUSD is
         fee = fee.mul((10**this.decimals()).sub(penaltyCompletion));
 
         return fee;
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        if (lastWithdraw[to] < lastWithdraw[from]) {
+            lastWithdraw[to] = lastWithdraw[from];
+        }
     }
 }

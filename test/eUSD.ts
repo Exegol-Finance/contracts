@@ -27,6 +27,7 @@ describe("eUSD", function () {
     return { EUSD, eUSD, owner, USDCWhale, USDC };
   }
 
+  /* mints eUSD to USDCWhale */
   async function mint(
     eUSD: any,
     owner: SignerWithAddress,
@@ -89,7 +90,7 @@ describe("eUSD", function () {
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
       await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
 
-      await eUSD.updateExchangeRate(NEW_EXCHANGE_RATE.toString());
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
       await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
 
       assert.equal(
@@ -116,7 +117,7 @@ describe("eUSD", function () {
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
       await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
 
-      await eUSD.updateExchangeRate(NEW_EXCHANGE_RATE.toString());
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
       await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
 
       assert.equal(
@@ -162,6 +163,22 @@ describe("eUSD", function () {
 
       // precision issue does not affect liquidity, overflow or underflow
       assert.equal((await eUSD.availableLiquidity()).toNumber(), 0);
+    });
+
+    it("should transfer withdraw limits to other users", async function () {
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
+        deployTokenFixture
+      );
+      await mint(eUSD, owner, USDC, USDCWhale);
+
+      await eUSD
+        .connect(USDCWhale)
+        .transfer(owner.address, 10 * Math.pow(10, 6));
+
+      assert.equal(
+        (await eUSD.getWithdrawFee(USDCWhale.address)).toNumber(),
+        (await eUSD.getWithdrawFee(owner.address)).toNumber()
+      );
     });
   });
 
@@ -228,11 +245,11 @@ describe("eUSD", function () {
       const { owner, eUSD, USDCWhale } = await loadFixture(deployTokenFixture);
 
       await expect(
-        eUSD.connect(USDCWhale).updateExchangeRate(10 * Math.pow(10, 6))
+        eUSD.connect(USDCWhale).setExchangeRate(10 * Math.pow(10, 6))
       ).to.be.rejectedWith(Error);
 
       await expect(
-        eUSD.connect(owner).updateExchangeRate(10 * Math.pow(10, 6))
+        eUSD.connect(owner).setExchangeRate(10 * Math.pow(10, 6))
       ).to.not.be.rejectedWith(Error);
 
       await expect(eUSD.exchangeRate()).to.eventually.equal(
