@@ -8,3 +8,4 @@ coverage.json
 .env
 .openzeppelin/
 .vscode/
+.solc*
