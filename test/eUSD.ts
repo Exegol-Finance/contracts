@@ -79,7 +79,7 @@ describe("eUSD", function () {
       );
     });
 
-    it("should mint lower amount when exchange rate is high", async function () {
+    it("should have more tokens when exchange rate is high", async function () {
       const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
@@ -90,8 +90,8 @@ describe("eUSD", function () {
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
       await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
 
-      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
       await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
 
       assert.equal(
         AMOUNT_TO_MINT,
@@ -99,14 +99,14 @@ describe("eUSD", function () {
       );
       assert.equal(
         Math.trunc(
-          (AMOUNT_TO_MINT * Math.pow(10, await eUSD.decimals())) /
-            NEW_EXCHANGE_RATE
+          (AMOUNT_TO_MINT * NEW_EXCHANGE_RATE) /
+            Math.pow(10, await eUSD.decimals())
         ),
         (await eUSD.balanceOf(owner.address)).toNumber()
       );
     });
 
-    it("should mint higher amount when exchange rate is low", async function () {
+    it("should have less tokens when exchange rate is low", async function () {
       const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
         deployTokenFixture
       );
@@ -117,8 +117,8 @@ describe("eUSD", function () {
       await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
       await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
 
-      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
       await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
 
       assert.equal(
         AMOUNT_TO_MINT,
@@ -126,8 +126,8 @@ describe("eUSD", function () {
       );
       assert.equal(
         Math.trunc(
-          (AMOUNT_TO_MINT * Math.pow(10, await eUSD.decimals())) /
-            NEW_EXCHANGE_RATE
+          (AMOUNT_TO_MINT * NEW_EXCHANGE_RATE) /
+            Math.pow(10, await eUSD.decimals())
         ),
         (await eUSD.balanceOf(owner.address)).toNumber()
       );
@@ -179,6 +179,97 @@ describe("eUSD", function () {
         (await eUSD.getWithdrawFee(USDCWhale.address)).toNumber(),
         (await eUSD.getWithdrawFee(owner.address)).toNumber()
       );
+    });
+  });
+
+  describe("Transfers and Approvals", function () {
+    it("should transfer scaled amounts", async function () {
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
+        deployTokenFixture
+      );
+
+      const AMOUNT_TO_MINT = 100 * Math.pow(10, await USDC.decimals());
+      const NEW_EXCHANGE_RATE = 1.1 * Math.pow(10, await eUSD.decimals());
+
+      await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
+      await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
+
+      await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
+
+      assert.equal(
+        Math.trunc(
+          (AMOUNT_TO_MINT * NEW_EXCHANGE_RATE) /
+            Math.pow(10, await eUSD.decimals())
+        ),
+        (await eUSD.balanceOf(owner.address)).toNumber()
+      );
+
+      await eUSD
+        .connect(owner)
+        .transfer(USDCWhale.address, await eUSD.balanceOf(owner.address));
+
+      assert.equal(
+        Math.trunc(
+          (AMOUNT_TO_MINT * NEW_EXCHANGE_RATE) /
+            Math.pow(10, await eUSD.decimals())
+        ),
+        (await eUSD.balanceOf(USDCWhale.address)).toNumber()
+      );
+    });
+
+    it("should approve absolute amounts", async function () {
+      const { owner, eUSD, USDC, USDCWhale } = await loadFixture(
+        deployTokenFixture
+      );
+
+      const AMOUNT_TO_MINT = 100 * Math.pow(10, await USDC.decimals());
+      let NEW_EXCHANGE_RATE = 1.1 * Math.pow(10, await eUSD.decimals());
+
+      await USDC.connect(USDCWhale).transfer(owner.address, AMOUNT_TO_MINT);
+      await USDC.connect(owner).approve(eUSD.address, AMOUNT_TO_MINT);
+
+      await eUSD.mint(AMOUNT_TO_MINT); // mint using 100 USDC
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
+
+      assert.equal(
+        Math.trunc(
+          (AMOUNT_TO_MINT * NEW_EXCHANGE_RATE) /
+            Math.pow(10, await eUSD.decimals())
+        ),
+        (await eUSD.balanceOf(owner.address)).toNumber()
+      );
+
+      await eUSD
+        .connect(owner)
+        .approve(USDCWhale.address, await eUSD.balanceOf(owner.address));
+
+      NEW_EXCHANGE_RATE = 1.2 * Math.pow(10, await eUSD.decimals());
+      await eUSD.setExchangeRate(NEW_EXCHANGE_RATE.toString());
+
+      assert.equal(
+        Math.trunc(
+          (AMOUNT_TO_MINT * NEW_EXCHANGE_RATE) /
+            Math.pow(10, await eUSD.decimals())
+        ),
+        (await eUSD.balanceOf(owner.address)).toNumber()
+      );
+
+      await expect(
+        eUSD.transferFrom(
+          owner.address,
+          USDCWhale.address,
+          120 * Math.pow(10, await USDC.decimals())
+        )
+      ).to.be.rejectedWith(Error, "ERC20: insufficient allowance");
+
+      await expect(
+        eUSD.transferFrom(
+          owner.address,
+          USDCWhale.address,
+          110 * Math.pow(10, await USDC.decimals())
+        )
+      ).to.be.rejectedWith(Error);
     });
   });
 

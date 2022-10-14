@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -9,22 +8,23 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract eUSD is
-    Initializable,
-    ERC20Upgradeable,
-    ERC20BurnableUpgradeable,
-    OwnableUpgradeable
-{
+contract eUSD is Initializable, IERC20Upgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeMathUpgradeable for uint256;
 
     IERC20Upgradeable public USDC;
 
-    address public feeRecipient;
+    string private _name;
+    string private _symbol;
+    uint256 private _totalSupply;
+    mapping(address => mapping(address => uint256)) private _allowances;
+    mapping(address => uint256) private _balances; // base balance
+
     uint256 private liquidity;
+    address public feeRecipient;
     uint256 public maxFee;
 
-    uint256 public exchangeRate; // eUSD per USDC
+    uint256 public exchangeRate; // USDC per eUSD
     mapping(address => uint256) public lastWithdraw; // address to block number
     uint256 public blockTimeout;
 
@@ -35,7 +35,6 @@ contract eUSD is
         public
         initializer
     {
-        __ERC20_init("eUSD", "eUSD");
         __Ownable_init();
         USDC = IERC20Upgradeable(_USDCAddress); // USDC mainnet address
         feeRecipient = msg.sender;
@@ -45,6 +44,155 @@ contract eUSD is
         allowDeposit = true;
         allowWithdraw = true;
         blockTimeout = _blockTimeout; //blocks (around 21 days for mainnet)
+    }
+
+    function baseToScaled(uint256 _amount) private view returns (uint256) {
+        return _amount.mul(exchangeRate).div(10**this.decimals());
+    }
+
+    function scaledToBase(uint256 _amount) private view returns (uint256) {
+        return _amount.mul(10**this.decimals()).div(exchangeRate);
+    }
+
+    // ERC20 features
+    function decimals() public pure returns (uint8) {
+        return 6;
+    }
+
+    function name() public view returns (string memory) {
+        return _name;
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return baseToScaled(_totalSupply);
+    }
+
+    function balanceOf(address user) public view override returns (uint256) {
+        return baseToScaled(_balances[user]);
+    }
+
+    function transfer(address to, uint256 amount)
+        public
+        override
+        returns (bool)
+    {
+        _transfer(msg.sender, to, amount);
+
+        return true;
+    }
+
+    function allowance(address owner, address spender)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _allowances[owner][spender];
+    }
+
+    function approve(address spender, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        address owner = _msgSender();
+        _approve(owner, spender, amount);
+        return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        address spender = _msgSender();
+
+        _spendAllowance(from, spender, amount);
+        _transfer(from, to, amount);
+
+        return true;
+    }
+
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        virtual
+        returns (bool)
+    {
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        virtual
+        returns (bool)
+    {
+        address owner = _msgSender();
+        uint256 currentAllowance = allowance(owner, spender);
+        require(
+            currentAllowance >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
+        unchecked {
+            _approve(owner, spender, currentAllowance - subtractedValue);
+        }
+
+        return true;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) private {
+        require(
+            msg.sender != address(0),
+            "ERC20: transfer from the zero address"
+        );
+        require(to != address(0), "ERC20: transfer to the zero address");
+
+        uint256 _amount = scaledToBase(amount);
+        require(
+            _balances[from] >= _amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+
+        _beforeTokenTransfer(msg.sender, to);
+
+        _balances[from] = _balances[from] - _amount;
+        _balances[to] += _amount;
+    }
+
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        uint256 currentAllowance = allowance(owner, spender);
+        if (currentAllowance != type(uint256).max) {
+            require(
+                currentAllowance >= amount,
+                "ERC20: insufficient allowance"
+            );
+            unchecked {
+                _approve(owner, spender, currentAllowance - amount);
+            }
+        }
     }
 
     function setDeposit(bool _allow) public onlyOwner {
@@ -70,10 +218,6 @@ contract eUSD is
 
     function setUSDC(address _address) public onlyOwner {
         USDC = IERC20Upgradeable(_address);
-    }
-
-    function decimals() public pure override returns (uint8) {
-        return 6;
     }
 
     function availableLiquidity() public view returns (uint256) {
@@ -111,19 +255,22 @@ contract eUSD is
             lastWithdraw[msg.sender] = block.number; // begin initial lock
         }
 
-        _mint(msg.sender, value.mul(10**this.decimals()).div(exchangeRate));
+        uint256 _baseValue = scaledToBase(value);
+        _balances[msg.sender] += _baseValue;
+        _totalSupply += _baseValue;
     }
 
     // value = number of eUSD to burn
     function withdraw(uint256 value) public {
         require(allowWithdraw, "Withdraws are disabled");
-        require(
-            liquidity >= value.mul(exchangeRate).div(10**this.decimals()),
-            "Not enough liquidity"
-        );
+        require(liquidity >= value, "Not enough liquidity");
 
-        _burn(msg.sender, value);
-        uint256 USDAmount = value.mul(exchangeRate).div(10**this.decimals());
+        uint256 _baseValue = scaledToBase(value);
+        require(_balances[msg.sender] >= _baseValue, "Not enough balance");
+
+        _balances[msg.sender] -= _baseValue;
+        _totalSupply -= _baseValue;
+        uint256 USDAmount = value;
         liquidity -= USDAmount;
 
         // subtract linear fee
@@ -135,7 +282,7 @@ contract eUSD is
         uint256 fee = USDAmount.mul(percentFee).div(10**this.decimals());
         USDAmount -= fee;
 
-        USDC.safeTransfer(owner(), fee);
+        USDC.safeTransfer(this.owner(), fee);
         USDC.safeTransfer(msg.sender, USDAmount);
     }
 
@@ -156,13 +303,7 @@ contract eUSD is
         return fee;
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-
+    function _beforeTokenTransfer(address from, address to) internal virtual {
         if (lastWithdraw[to] < lastWithdraw[from]) {
             lastWithdraw[to] = lastWithdraw[from];
         }
