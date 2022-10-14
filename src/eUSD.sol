@@ -36,6 +36,8 @@ contract eUSD is Initializable, IERC20Upgradeable, OwnableUpgradeable {
         initializer
     {
         __Ownable_init();
+        _name = "eUSD";
+        _symbol = "eUSD";
         USDC = IERC20Upgradeable(_USDCAddress); // USDC mainnet address
         feeRecipient = msg.sender;
         liquidity = 0;
@@ -164,6 +166,8 @@ contract eUSD is Initializable, IERC20Upgradeable, OwnableUpgradeable {
 
         _balances[from] = _balances[from] - _amount;
         _balances[to] += _amount;
+
+        emit Transfer(from, to, amount);
     }
 
     function _approve(
