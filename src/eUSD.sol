@@ -262,6 +262,7 @@ contract eUSD is Initializable, IERC20Upgradeable, OwnableUpgradeable {
         uint256 _baseValue = scaledToBase(value);
         _balances[msg.sender] += _baseValue;
         _totalSupply += _baseValue;
+        emit Transfer(address(0), msg.sender, value);
     }
 
     // value = number of eUSD to burn
@@ -274,6 +275,8 @@ contract eUSD is Initializable, IERC20Upgradeable, OwnableUpgradeable {
 
         _balances[msg.sender] -= _baseValue;
         _totalSupply -= _baseValue;
+        emit Transfer(msg.sender, address(0), value);
+
         uint256 USDAmount = value;
         liquidity -= USDAmount;
 
