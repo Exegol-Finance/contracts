@@ -11,7 +11,8 @@ const {
   PRIVATE_KEY,
   MAINNET_URL,
   GOERLI_URL,
-  ARB_RIN_KEY,
+  ARB_TEST_URL,
+  ARBITRUM,
   ETHERSCAN,
 } = process.env;
 
@@ -35,7 +36,11 @@ const config: HardhatUserConfig = {
       accounts: [`0x${PRIVATE_KEY}`],
     },
     arb_test: {
-      url: ARB_RIN_KEY,
+      url: ARB_TEST_URL,
+      accounts: [`0x${PRIVATE_KEY}`],
+    },
+    arbi: {
+      url: ARBITRUM,
       accounts: [`0x${PRIVATE_KEY}`],
     },
   },
