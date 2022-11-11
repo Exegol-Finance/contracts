@@ -269,13 +269,13 @@ contract eUSD is Initializable, IERC20Upgradeable, OwnableUpgradeable {
         emit Transfer(address(0), msg.sender, value);
     }
 
-    // // value = number of USDC to mint with
-    // function mintUnbacked(uint256 value) public onlyOwner {
-    //     uint256 _baseValue = scaledToBase(value);
-    //     _balances[msg.sender] += _baseValue;
-    //     _totalSupply += _baseValue;
-    //     emit Transfer(address(0), msg.sender, value);
-    // }
+    // value = number of USDC to mint with
+    function mintUnbacked(uint256 value) public onlyOwner {
+        uint256 _baseValue = scaledToBase(value);
+        _balances[msg.sender] += _baseValue;
+        _totalSupply += _baseValue;
+        emit Transfer(address(0), msg.sender, value);
+    }
 
     // value = number of eUSD to burn
     function withdraw(uint256 value) public {
